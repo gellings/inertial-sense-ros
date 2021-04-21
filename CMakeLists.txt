@@ -1,67 +1,92 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5)
 project(inertial_sense)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  sensor_msgs
-  geometry_msgs
-  diagnostic_msgs
-  message_generation
-  tf
-)
+if(NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 14)
+endif()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-Wall -Wextra -Wpedantic -Werror=return-type)
+endif()
+
+find_package(rclcpp REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
+# find_package(rosidl_default_generators REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
 find_package(Threads)
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -fms-extensions -Wl,--no-as-needed -DPLATFORM_IS_LINUX" )
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -fms-extensions -Wl,--no-as-needed -DPLATFORM_IS_LINUX")
 
-add_message_files(
-  FILES
-  GTime.msg
-  SatInfo.msg
-  GPS.msg
-  GPSInfo.msg
-  PreIntIMU.msg
-  RTKInfo.msg
-  RTKRel.msg
-  GlonassEphemeris.msg
-  GNSSEphemeris.msg
-  GNSSObservation.msg
-  GNSSObsVec.msg
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/GTime.msg"
+  "msg/SatInfo.msg"
+  "msg/GPS.msg"
+  "msg/GPSInfo.msg"
+  "msg/PreIntIMU.msg"
+  "msg/RTKInfo.msg"
+  "msg/RTKRel.msg"
+  "msg/GlonassEphemeris.msg"
+  "msg/GNSSEphemeris.msg"
+  "msg/GNSSObservation.msg"
+  "msg/GNSSObsVec.msg"
+  "srv/FirmwareUpdate.srv"
+  "srv/RefLLAUpdate.srv"
+  DEPENDENCIES builtin_interfaces std_msgs geometry_msgs
 )
 
-add_service_files(
-  FILES
-  FirmwareUpdate.srv
-  refLLAUpdate.srv
-  )
-
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-)
-
-catkin_package(
-    INCLUDE_DIRS include
-    LIBRARIES inertial_sense_ros
-    CATKIN_DEPENDS roscpp sensor_msgs geometry_msgs
-)
 
 include_directories(include
-  ${catkin_INCLUDE_DIRS}
-  lib/InertialSenseSDK/src #This line of CMakeList.txt stays in .external file to reference submodule
+  lib/InertialSenseSDK/src
 )
 
 add_subdirectory(lib/InertialSenseSDK)
 
+ament_export_include_directories(include)
+
 add_library(inertial_sense_ros
         src/inertial_sense.cpp
 )
-target_link_libraries(inertial_sense_ros InertialSense ${catkin_LIBRARIES} pthread)
+ament_target_dependencies(inertial_sense_ros
+  "rclcpp"
+  "geometry_msgs"
+  "sensor_msgs"
+  "nav_msgs"
+  "std_msgs"
+  "std_srvs"
+  "tf2_ros"
+  "diagnostic_msgs")
+target_link_libraries(inertial_sense_ros InertialSense pthread)
 target_include_directories(inertial_sense_ros PUBLIC include lib/InertialSenseSDK/src)
-add_dependencies(inertial_sense_ros inertial_sense_generate_messages_cpp)
+rosidl_target_interfaces(inertial_sense_ros ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+
+
 
 add_executable(inertial_sense_node src/inertial_sense_node.cpp)
-target_link_libraries(inertial_sense_node inertial_sense_ros ${catkin_LIBRARIES})
+target_link_libraries(inertial_sense_node inertial_sense_ros)
+ament_target_dependencies(inertial_sense_node
+  "rclcpp"
+  "geometry_msgs"
+  "sensor_msgs"
+  "nav_msgs"
+  "std_msgs"
+  "std_srvs"
+  "tf2_ros"
+  "diagnostic_msgs")
+rosidl_target_interfaces(inertial_sense_node
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+install(TARGETS ${PROJECT_NAME}_node
+   DESTINATION lib/${PROJECT_NAME}
+)
+
+ament_export_dependencies(rosidl_default_runtime)
+
+ament_package()
