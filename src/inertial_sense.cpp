@@ -284,20 +284,16 @@ template <typename T>
 void InertialSenseROS::set_vector_flash_config(std::string param_name, uint32_t size, uint32_t offset){
   std::vector<double> tmp(size,0);
   T v[size];
-
   rclcpp::Parameter param_list(param_name, tmp);
 
   this->declare_parameter(param_name);
   this->get_parameter(param_name, param_list);
   tmp = param_list.as_double_array();
 
-  std::cout << param_name << ": ";
   for (int i = 0; i < size; i++)
   {
     v[i] = tmp[i];
-    std::cout << v[i] << " ";
   }
-  std::cout << std::endl;
   
   IS_.SendData(DID_FLASH_CONFIG, reinterpret_cast<uint8_t*>(&v), sizeof(v), offset);
   IS_.GetFlashConfig() = IS_.GetFlashConfig();
