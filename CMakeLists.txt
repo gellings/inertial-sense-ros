@@ -49,6 +49,10 @@ include_directories(include
 
 add_subdirectory(lib/InertialSenseSDK)
 
+install(TARGETS InertialSense
+   DESTINATION lib
+)
+
 ament_export_include_directories(include)
 
 add_library(inertial_sense_ros
@@ -67,7 +71,9 @@ target_link_libraries(inertial_sense_ros InertialSense pthread)
 target_include_directories(inertial_sense_ros PUBLIC include lib/InertialSenseSDK/src)
 rosidl_target_interfaces(inertial_sense_ros ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
-
+install(TARGETS inertial_sense_ros
+   DESTINATION lib
+)
 
 
 add_executable(inertial_sense_node src/inertial_sense_node.cpp)
